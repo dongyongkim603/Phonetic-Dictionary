@@ -4,10 +4,14 @@ let filteredArray = [];//a file array with no special charactes
 let userInput = "";// stores the user input from prompt
 let matchingSounds = []; //an array of the matching sounding words
 let searchAnswer;//the return value of the initial search
-let addPhoneme = [];//contains the phase III add phoneme
+let addPhenome = []; //contains the phase IV add phoneme
+let replacePhoneme = []; //contains the phase III replace phoneme
+let resetBool = true;
 
 //creates an event listener on the upload file button in HTML
 document.getElementById('fileinput').addEventListener('change', readSingleFile, false);
+
+//-----------------------page load functions-------------------------
 
 /**
  * Takes in and reads a file from the upload button.
@@ -66,18 +70,32 @@ function splitOnSpace(line) {
  * input
  */
 function startSearch() {
-    const letters1 = /^[A-Za-z]+$/;
-    while (userInput == 0 || !userInput.match(letters1)) {
-        userInput = prompt("Please enter a word");
+    if (resetBool) {
+        const letters1 = /^[A-Za-z]+$/;
+        while (userInput == 0 || !userInput.match(letters1)) {
+            userInput = prompt("Please enter a word").toUpperCase();
+        }
+        filerArray();
+        searchAnswer = searchAllLines(userInput);
+        if (searchAnswer != undefined) {
+            console.log("searchAnswer" + searchAnswer.before);
+            searchAllLinesIdentical(searchAnswer);
+            searchAllSimlar(searchAnswer.after);
+            searchAllReplace(searchAnswer.after);
+            printResults();
+            resetBool = false;
+        } else {
+            console.log(`not found`);
+            resetBool = false;
+        }
+    } else {
+        reset();
+        startSearch();
+        console.log("reset");
     }
-    filerArray();
-    searchAnswer = searchAllLines(userInput);
-    if (searchAnswer != undefined) {
-        searchAllLinesPhem(searchAnswer.after);
-    }
-    printResults();
-    searchLinesSimilar(searchAnswer.after);
 }
+
+//---------------------------search functions--------------------------
 
 /**
  * goes through the file string array and checks each line. if a line does not contain
@@ -88,7 +106,7 @@ function startSearch() {
 function filerArray() {
     let x = 0;//iterating through fileArray
     let i = 0;//iterates over filteredArray
-    const filter = /[^a-zA-Z0-9'\s]/;
+    const filter = /[^a-z0-9A-Z'\s]/;
     do {
         if (filter.test(fileArray[x]) === false) {
             filteredArray[i] = fileArray[x];
@@ -98,7 +116,6 @@ function filerArray() {
             x++;
         }
     } while (x < fileArray.length); //while (x < fileArray.length);
-    console.log("filteredArray is " + i + " and fileArray is " + x);
 }
 
 /**
@@ -106,22 +123,22 @@ function filerArray() {
  * @param {the string to be search for} searchTerm 
  */
 function searchAllLines(searchTerm) {
-    let upperSearch = searchTerm.toUpperCase();
+    let upperSearch = searchTerm;
     let x = 0;
     let anwser;//answer from first search of dictionary
+    let element
     while (filteredArray.length > x) {
-        if (filteredArray[x].search(upperSearch) == -1) {
-            x++;
-            continue;
-        } else {
+        element = splitOnSpace(filteredArray[x])
+        if (element.before === upperSearch) {
             anwser = splitOnSpace(filteredArray[x]);
             //console.log("test found it!! \n >" + anwser.before + "\n Pronunciation:   " + anwser.after);
             //searchAllLinesPhem(answer.after);
             return anwser;
+        } else {
+            x++;
+            continue;
         }
-
     }
-    //console.log("could not find this word...");
 }
 
 /**
@@ -129,53 +146,126 @@ function searchAllLines(searchTerm) {
  * word objects to a new array. a match is based off of a match in phenetic spellings
  * @param {takes in a string of phenetic spelling} phen 
  */
-function searchAllLinesPhem(phen) {
-
-    //console.log("this is the next seach function" + phen);
-
-    let upperSearch = phen.toUpperCase();
+function searchAllLinesIdentical(phen) {
     let x = 0;
     let i = 0;
-    let localAnswer
+    let localAnswer;
+    let after;
+    const searchLength = splitOnSpace(phen).after.length;
     while (filteredArray.length > x) {
-        if (filteredArray[x].search(upperSearch) == -1) {
-            x++;
-            continue;
-        } else {
+        after = splitOnSpace(filteredArray[x]).after;
+        before = splitOnSpace(filteredArray[x]).before;
+        if (after === phen.after && phen.before != before) {
             localAnswer = splitOnSpace(filteredArray[x]);
             matchingSounds[i] = localAnswer;
             i++;
             x++;
+        } else {
+            x++;
+            continue;
         }
+    }
+}
 
+function searchAllSimlar(phen) {
+    let x = 0;
+    let i = 0;
+    let localAnswer;
+    let other;
+    const search = splitOnSpace(phen).after.trim();
+    while (filteredArray.length > x) {
+        other = splitOnSpace(filteredArray[x]).after.trim();
+
+        //console.log("other  " + other);
+        if (stringComparitor(search, other)) {
+            localAnswer = splitOnSpace(filteredArray[x]);
+            replacePhoneme[i] = localAnswer;
+            i++;
+            x++;
+        } else {
+            x++;
+        }
+    }
+}
+
+function searchAllReplace(phen) {
+    let x = 0;
+    let i = 0;
+    let localAnswer;
+    let other;
+    const searchLength = splitOnSpace(phen).after.trim();
+    while (filteredArray.length > x) {
+        other = splitOnSpace(filteredArray[x]).after.trim();
+
+        //console.log("other  " + other);
+        if (subStringComparitor(phen, other)) {
+            localAnswer = splitOnSpace(filteredArray[x]);
+            addPhenome[i] = localAnswer;
+            i++;
+            x++;
+        } else {
+            x++;
+        }
+    }
+}
+
+//-----------------------search helper functions----------------------
+
+/**
+ * takes in two string that are in the form of phonemes and compares them.
+ * If they are exact matches return true
+ * @param {the first phoneme to be compared agaist} first 
+ * @param {the second phoneme to compare with} second 
+ */
+function stringComparitor(first, second) {
+    let differences = 0;
+    if (first.length != second.length) {
+        return false;
+    }
+    for (let i = 0; i < first.length; i++) {
+        if (first[i] !== second[i]) {
+            differences += 1;
+        }
+    }
+    if (differences != 1) {
+        return false;
+    } else {
+        return true;
     }
 }
 
 /**
- * 
- * @param {*} phen 
+ * takes in two substring arrays and compares them. Compares the elements of each array
+ * and if there are more than 1 differences will return a false
+ * @param {a substring array to be compared against} first 
+ * @param {a substring array to be compared with} second 
  */
-function searchLinesSimilar(phen) {
-    let splitPhen = []; //will hold the substring array from the split phen
-    splitPhen = phen.split(" ");
-    console.log(splitPhen.length + "this is the next searasdfch function" + + splitPhen[1] + splitPhen[2] + splitPhen[3]);
+function subStringComparitor(first, second) {
+    firstTrimmed = first.trim().split(/\s+/);
+    secondTrimmed = second.trim().split(/\s+/);
+    let differences = 0;
     let x = 0;
-    let numberOfMatches = 0;
-    const lengthOfPhenArray = splitPhen.length;
-    console.log(splitPhen[1]);
-    do {
-        numberOfMatches = 1;
-        splitPhen.forEach(element => {
-            if (filteredArray[x].search(element) != -1 && numberOfMatches != lengthOfPhenArray - 1) {
-                numberOfMatches++;
-            } else if (numberOfMatches == lengthOfPhenArray - 1) {
-                console.log("yesssss match");
-                addPhoneme = filteredArray[x];
-            }
-        });
-        x++;
-    } while (filteredArray.length > x);
-    console.log(addPhoneme.length);
+    let i = 0;
+    let flag = true;
+    if ((firstTrimmed.length + 1) != secondTrimmed.length) {
+        return false;
+    }
+    while (flag && x < firstTrimmed.length && i < secondTrimmed.length) {
+        if (firstTrimmed[x] !== secondTrimmed[i]) {
+            differences++;
+            i++;
+        } else {
+            x++; i++;
+        }
+        if (differences > 1) {
+            flag = false;
+        }
+    }
+    if (!flag) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 /**
@@ -183,10 +273,36 @@ function searchLinesSimilar(phen) {
  */
 function printResults() {
     let i = 0;
+    let j = 0;
+    let k = 0;
     let concatinatedString = "";
+    let concatinatedString2 = "";
+    let concatinatedString3 = "";
     while (i < matchingSounds.length) {
         concatinatedString += `${matchingSounds[i].before} `;
         i++;
     }
-    console.log(`>${searchAnswer.before} \n \nPronunciation:   ${searchAnswer.after} \n \nIdentical ${concatinatedString}`);
+    while (j < replacePhoneme.length) {
+        concatinatedString2 += `${replacePhoneme[j].before} `;
+        j++;
+    }
+    while (k < addPhenome.length) {
+        concatinatedString3 += `${addPhenome[k].before} `;
+        k++;
+    }
+    console.log(`>${searchAnswer.before} \n \nPronunciation:   ${searchAnswer.after} 
+    \n \nIdentical:   ${concatinatedString} \n \nReplace Phoneme:  ${concatinatedString2} \n \nAdd phoneme:  ${concatinatedString3}`);
+}
+
+/**
+ * resets all the values of the global veriables and is used by the logic in the 
+ * startSearch feature to allow for the user to perform multiple seaquential seraches
+ */
+function reset() {
+    userInput = "";// stores the user input from prompt
+    matchingSounds = []; //an array of the matching sounding words
+    searchAnswer;//the return value of the initial search
+    addPhenome = [];//contains the phase IV add phoneme
+    replacePhoneme = []; //contains the phase III replace phoneme 
+    resetBool = true;
 }
