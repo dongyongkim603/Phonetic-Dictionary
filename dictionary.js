@@ -167,6 +167,11 @@ function searchAllLinesIdentical(phen) {
     }
 }
 
+/**
+ * takes in a phoneme and seraches throught the file array to find a match of
+ * words that have a similar sound if only one phoneme is replaced
+ * @param {a String in the form of a phoneme} phen 
+ */
 function searchAllSimlar(phen) {
     let x = 0;
     let i = 0;
@@ -175,8 +180,6 @@ function searchAllSimlar(phen) {
     const search = splitOnSpace(phen).after.trim();
     while (filteredArray.length > x) {
         other = splitOnSpace(filteredArray[x]).after.trim();
-
-        //console.log("other  " + other);
         if (stringComparitor(search, other)) {
             localAnswer = splitOnSpace(filteredArray[x]);
             replacePhoneme[i] = localAnswer;
@@ -188,6 +191,11 @@ function searchAllSimlar(phen) {
     }
 }
 
+/**
+ * takes in a phoneme and seraches throught the file array to find a match of
+ * words that have a similar sound if only one phoneme is added
+ * @param {a String in the form of a phoneme} phen 
+ */
 function searchAllReplace(phen) {
     let x = 0;
     let i = 0;
